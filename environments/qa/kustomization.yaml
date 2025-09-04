@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: qa
+
+resources:
+  - ../../base
+
+patches:
+  - path: companion-patches.yaml
+
+configMapGenerator:
+- name: companion-config
+  behavior: merge
+  literals:
+  - COMPANION_DOMAIN=companion.qa.askturing.ai
+  - COMPANION_PROTOCOL=https
+  - COMPANION_SELF_ENDPOINT=companion.qa.askturing.ai
+  - COMPANION_CLIENT_ORIGINS=https://portal.qa.askturing.ai
+  - COMPANION_UPLOAD_URLS=https://backend.qa.askturing.ai/api/upload
+  - COMPANION_DEBUG=false
+
+images:
+- name: transloadit/companion
+  newTag: "4.13.1"

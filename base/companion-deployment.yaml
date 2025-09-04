@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: companion
+  labels:
+    app: companion
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  selector:
+    matchLabels:
+      app: companion
+  template:
+    metadata:
+      labels:
+        app: companion
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: companion-workload-identity-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: companion
+        image: transloadit/companion:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3020
+          name: http
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: companion-config
+        - secretRef:
+            name: companion-secrets
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: COMPANION_REDIS_URL
+          value: "redis://companion-redis.$(NAMESPACE).svc.cluster.local:6379"
+        volumeMounts:
+        - name: companion-data
+          mountPath: /tmp/companion-data
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          tcpSocket:
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: companion-data
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: companion-workload-identity-sa
+  labels:
+    azure.workload.identity/use: "true"
+  annotations:
+    azure.workload.identity/tenant-id: "d073c6d4-f21c-4f14-a74f-253693f4c712"
+    argocd.argoproj.io/sync-wave: "-30"

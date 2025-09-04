@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - companion-deployment.yaml
+  - companion-redis.yaml
+  - companion-service.yaml
+  - companion-ingress.yaml
+  - companion-hpa.yaml
+  - companion-pdb.yaml
+  - companion-networkpolicy.yaml
+  - azure-secret-store.yaml
+  - external-secret.yaml
+
+commonLabels:
+  app.kubernetes.io/name: companion
+  app.kubernetes.io/component: file-upload
+  app.kubernetes.io/part-of: askturing
+
+configMapGenerator:
+- name: companion-config
+  literals:
+  - COMPANION_DATADIR=/tmp/companion-data
+  - COMPANION_STREAMING_UPLOAD=true
+  - COMPANION_ENABLE_URL_ENDPOINT=false
+  - COMPANION_DEBUG=false
+  - COMPANION_PERIODIC_PING_COUNT=0
+  - "COMPANION_REDIS_EXPRESS_SESSION_PREFIX=companion-session:"
+  - COMPANION_METRICS=true
+  - COMPANION_PORT=3020

@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: companion-workload-identity-sa
+  annotations:
+    azure.workload.identity/client-id: "19154ad3-1d75-406e-99a9-6f1c64e33aa8"
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: companion
+  annotations:
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://portal.stage.askturing.ai"
+spec:
+  rules:
+  - host: companion.stage.askturing.ai
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: companion
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - companion.stage.askturing.ai
+    secretName: companion-tls-stage
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: companion
+spec:
+  minReplicas: 1
+  maxReplicas: 3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: companion
+spec:
+  template:
+    spec:
+      containers:
+      - name: companion
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+---
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: azure-companion-store
+spec:
+  provider:
+    azurekv:
+      vaultUrl: "https://askturing-stage.vault.azure.net/"

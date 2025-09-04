@@ -1,0 +1,55 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: companion
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # Large file upload support (2GB max)
+    nginx.ingress.kubernetes.io/proxy-body-size: "2048m"
+    nginx.ingress.kubernetes.io/client-body-buffer-size: "10m"
+    
+    # Timeout settings for long uploads (30 minutes)
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "1800"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "1800"
+    nginx.ingress.kubernetes.io/client-body-timeout: "300"
+    nginx.ingress.kubernetes.io/send-timeout: "1800"
+    
+    # WebSocket and streaming support
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    
+    # Keep connections alive for file uploads
+    nginx.ingress.kubernetes.io/upstream-keepalive-connections: "50"
+    nginx.ingress.kubernetes.io/upstream-keepalive-timeout: "900"
+    nginx.ingress.kubernetes.io/upstream-keepalive-requests: "1000"
+    
+    # CORS configuration for browser file uploads
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS, PUT, DELETE"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,uppy-auth-token"
+    
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: companion.example.com  # This will be overridden per environment
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: companion
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - companion.example.com  # This will be overridden per environment
+    secretName: companion-tls  # This will be customized per environment
